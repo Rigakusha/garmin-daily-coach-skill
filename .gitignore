@@ -1,0 +1,13 @@
+# 本机配置（setup.sh 生成）
+settings.md
+
+# 如果用户把工作区建在仓库内，防止真实文档被误提交
+/个人档案.md
+/训练计划.md
+/每日流程.md
+
+# 常见残留与系统文件
+.env
+*.log
+test_output*
+.DS_Store
