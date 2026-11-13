@@ -23,7 +23,7 @@
 - 全部脚本无网络调用、无遥测、无第三方服务；健康数据仅在用户自身设备与账户间流转。
 - 仅依赖系统自带 python3、swift、bash 与 EventKit，无第三方包与订阅。
 - 日志输入成本低：每晚在日历中填写三行，训练后追加一条训练记录。
-- 支持 DeepSeek Harness bundle 与 MCP 两种接入方式。
+- 支持 DeepSeek Harness bundle 与 MCP 两种接入方式，前者已在实际使用中完成验证。
 
 ## 环境要求
 
