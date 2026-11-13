@@ -1,108 +1,107 @@
 # garmin-coach-skill
 
-一个可复用的 **Garmin 教练技能**：读取 Garmin 原始数据（睡眠 / HRV / 晨脉 / 负荷 / 活动）和训练日志，用**五信号评级矩阵**做综合裁决（不照搬 Garmin 结论），输出当日训练处方，并写入 macOS 日历与提醒事项（iCloud 同步 iPhone）。附带周复盘 / 月复盘协议。
+面向 Garmin 用户的每日训练教练技能。读取 Garmin 原始健康数据与用户日历中的训练日志，依据五信号评级生成当日训练处方，写入 macOS 日历与提醒事项，经 iCloud 同步至 iPhone。适用于 DeepSeek Harness 及支持 MCP 的客户端。
 
-**本仓库不含任何个人信息。** 所有个人配置由 `setup.sh` 在本机生成 `settings.md`（已被 `.gitignore` 排除），可直接发布到 GitHub。
+个人配置存于本机 `settings.md`（由 `setup.sh` 生成），仓库不含任何个人数据。
 
-## 功能
+## 概述
 
-- 每日：读 5 项原始数据 → 新鲜度检查 → 读「训练日志」日历 → 五信号评级（HRV/睡眠/晨脉/负荷/主观）→ 裁决 → 输出固定卡片 → 写入「训练日程」日历 + 3 条提醒（训练 19:30 / 测体重+体脂 21:30 / 营养 22:00）
-- 周日：卡片带「复盘日」提醒行 + 第 4 条提醒（周复盘 20:00）
-- 复盘：周复盘 / 月复盘（对照月度测试与里程碑）
-- 失败处理：数据读不到就明说，绝不编造
-- 伤病要点自动带上（来自个人档案）、测试前一天自动减量
+技能每日执行以下流程：
 
-## 前置依赖
+1. 读取睡眠、HRV、晨脉、急性负荷、近期活动五项原始数据，先进行新鲜度校验；数据未同步时提示用户，不以旧数据生成处方。
+2. 读取「训练日志」日历中前一日的记录，包括体重、体脂率、备注及各条训练记录。
+3. 依据五信号评级矩阵（HRV、睡眠、晨脉、负荷、主观感受）判定恢复状态：正常、减量或恢复。
+4. 按周计划输出当日训练部位与要点，卡片格式固定，判断依据可追溯。
+5. 写入「训练日程」日历事件及三条提醒（训练 19:30、测体重 21:30、营养 22:00）；周日追加复盘提醒。
 
-- **macOS**：日历/提醒写入用 osascript（其他系统会跳过写入，仍能输出卡片）
-- **运行环境**：
-  - `python3`（数据新鲜度检查）
-  - `swift`（写日程 / 清理提醒；macOS 安装 Xcode 命令行工具即自带）
-  - `bash`（提醒创建与初始化）
-- **Apple 日历与提醒事项**（`setup.sh` 会自动创建，也可手动建同名）：
-  - 日历「训练日志」（用户每日日志，01:00–02:00 模板事件）
-  - 日历「训练日程」（教练写入当日训练事件）
-  - 提醒事项列表「训练」（训练 19:30 / 测体重+体脂 21:30 / 营养 22:00）
-- **时区**：默认按 UTC+8（北京时间）核对 HRV 时间；其他时区设环境变量 `HR_TZ_OFFSET`（如 `HR_TZ_OFFSET=9`）
-- **Garmin 数据源**（二选一）：
-  - DeepSeek Harness + [`dsh-plugin-garmin-connect`](https://github.com/Likenttt/garmin-connect-plugin-for-dsh)
-  - 或任何支持 MCP 的 agent + 同一插件的 `garmin-connect-mcp`（支持 Codex / Claude Code / Cursor / Windsurf 等）
-- 日历/提醒写入需要 macOS **自动化权限**（首次运行 setup.sh 会弹窗，点允许）
+另内置周复盘与月度复盘流程，对照测试成绩与阶段里程碑。
 
-## 安装（DeepSeek Harness）
+## 特性
 
-1. 拷贝本文件夹到任意位置
-2. 运行 `./setup.sh`，按提示填工作区路径、Garmin 账号 ID、静息心率基线
-3. `plugin_manager` → `install_bundle` → 选择本文件夹
-4. 编辑生成的 `settings.md` 与工作区 `个人档案.md`
-5. 重启 DSH，说「今天训练计划」
+- 处方直接写入系统日历与提醒事项，经 iCloud 同步，无需安装额外应用。
+- 决策基于原始数据而非厂商综合分数，各信号阈值可调，卡片内附判断依据。
+- 全部脚本无网络调用、无遥测、无第三方服务；健康数据仅在用户自身设备与账户间流转。
+- 仅依赖系统自带 python3、swift、bash 与 EventKit，无第三方包与订阅。
+- 日志输入成本低：每晚在日历中填写三行，训练后追加一条训练记录。
+- 支持 DeepSeek Harness bundle 与 MCP 两种接入方式。
 
-> 不要与同名的私有定制版同时安装（技能名冲突）。
+## 环境要求
 
-## 安装（其他 agent：Codex / Claude Code / Cursor）
+- macOS：日历与提醒写入依赖 osascript。其他平台仅生成卡片，不写入。
+- `python3`、`bash`、`swift`（随 Xcode 命令行工具提供）。
+- Apple 日历：「训练日志」「训练日程」；提醒事项列表：「训练」。（`setup.sh` 自动创建，亦可手动创建同名项。）
+- Garmin 数据源，二选一：
+  - DeepSeek Harness + [dsh-plugin-garmin-connect](https://github.com/Likenttt/garmin-connect-plugin-for-dsh)
+  - 支持 MCP 的客户端 + `garmin-connect-mcp`（Codex、Claude Code、Cursor、Windsurf 等）
+- 首次运行 `setup.sh` 时，macOS 会请求「日历」「提醒事项」自动化权限，须允许。
+- 时区默认按 UTC+8 核对；其他时区设置环境变量 `HR_TZ_OFFSET`。
 
-1. 运行 `./setup.sh`
-2. 把 `SKILL.md` 放入该 agent 的技能目录
-3. 用 `garmin-connect-mcp` 连接 Garmin（见插件 README 的 MCP 配置）
-4. 技能会读 `settings.md` 里的 `skill_dir` 来定位脚本；脚本是普通 bash/swift/python，任何有终端权限的 agent 都能执行
-5. 注意：日历/提醒的 macOS 自动化权限要**按进程**授权——给运行技能的 agent 进程单独开一次
+## 安装
+
+### DeepSeek Harness
+
+1. 复制本文件夹至目标位置。
+2. 运行 `./setup.sh`，按提示填写工作区路径、Garmin 账号 ID、静息心率基线。
+3. 在 plugin_manager 中执行 install_bundle，选择本文件夹。
+4. 编辑生成的 `settings.md` 及工作区 `个人档案.md`。
+5. 重启 DSH，发送「今天训练计划」。
+
+同名私有定制版不可与本技能同时安装。
+
+### 其他客户端（Codex / Claude Code / Cursor）
+
+1. 运行 `./setup.sh`。
+2. 将 `SKILL.md` 放入客户端技能目录。
+3. 通过 `garmin-connect-mcp` 连接 Garmin。
+4. 脚本为通用 bash/swift/python；自动化权限按进程授予，新客户端需单独授权。
 
 ## 目录结构
 
 ```
-garmin-coach-public/
+.
 ├── README.md
-├── SKILL.md                  ← 技能正文（通用，无个人数据）
-├── index.js                  ← DSH 注册壳（读 SKILL.md 并注册到全局）
-├── cordis.patch.yml          ← DSH 插件行声明
-├── package.json              ← DSH bundle 声明
-├── setup.sh                  ← 新机器初始化
-├── settings.example.md       ← 配置模板（setup.sh 据此生成 settings.md）
-├── .gitignore                ← 排除 settings.md
-├── scripts/                  ← 四个执行脚本（通用，无个人数据）
-│   ├── 检查数据新鲜度.py
-│   ├── 写今日日程.swift
-│   ├── 添加提醒.sh
-│   └── 清理过期提醒.swift
-└── templates/                ← 工作区文档模板（setup.sh 复制到工作区）
-    ├── 训练计划.md.template
-    ├── 个人档案.md.template
-    └── 每日流程.md.template
+├── SKILL.md                 技能正文
+├── index.js                 DSH 注册入口
+├── cordis.patch.yml / package.json
+├── setup.sh                 初始化脚本
+├── settings.example.md
+├── .gitignore               排除 settings.md
+├── scripts/                 检查数据新鲜度.py / 写今日日程.swift / 添加提醒.sh / 清理过期提醒.swift
+└── templates/               工作区文档模板
 ```
 
-## 定制入口
+## 定制
 
-| 要改什么 | 在哪改 |
+| 项目 | 位置 |
 |---|---|
-| 提醒时间（19:30 / 21:30 / 22:00） | `SKILL.md` 第 9 步 |
-| 五信号阈值（≥85 分 / ±3 bpm…） | `SKILL.md` 五信号矩阵 |
-| 日历名「训练日程」 | `scripts/写今日日程.swift` 顶部常量 |
-| 提醒列表名「训练」 | `scripts/添加提醒.sh`、`scripts/清理过期提醒.swift` 顶部常量 |
-| 个人目标/基线 | 工作区 `个人档案.md`、`训练计划.md`（实时文档，不重启即生效） |
-| 技能流程本身 | `SKILL.md`（重启 DSH 生效） |
+| 提醒时间 | `SKILL.md` 第 9 步 |
+| 评级阈值 | `SKILL.md` 五信号矩阵 |
+| 日历名称 | `scripts/写今日日程.swift` 顶部常量 |
+| 提醒列表名称 | `scripts/添加提醒.sh`、`scripts/清理过期提醒.swift` 顶部常量 |
+| 目标与基线 | 工作区 `个人档案.md`、`训练计划.md` |
+| 流程逻辑 | `SKILL.md`（修改后需重启 DSH） |
 
-## 数据流向
+## 数据与隐私
 
-```
-Garmin（睡眠/HRV/心率/体重）→ 本机 agent / LLM 推理 → 本机日历与提醒事项（经 iCloud 同步到用户自己的设备）
-```
+数据流向：Garmin → 本机推理 → 本机日历与提醒（iCloud 同步）。脚本不含网络调用与遥测。`settings.md` 仅存本机。仓库不含任何个人数据。
 
-- 4 个脚本**无任何网络调用**、无遥测、无第三方服务
-- `settings.md`（含账号 ID）只存本机，已被 `.gitignore` 排除
-- 本技能不上传任何数据；数据仅在你自己的设备与你的 Garmin / Apple 账户之间流动
+## 发布注意
 
-## 发布到 GitHub
+1. 仅提交本文件夹；父目录可能含个人档案。
+2. 提交前执行 `git log --all --name-only | grep -E "settings|个人档案|训练计划|每日流程"` 检查历史。
+3. 提交身份使用 noreply 邮箱，避免真实邮箱进入提交历史。
+4. 压缩或网盘分享前删除 `settings.md`。
 
-直接推送**本文件夹**即可。`.gitignore` 已排除 `settings.md`；`settings.example.md`、模板、技能、脚本全部不含个人信息。
+## 初次使用
 
-**发布前必查**：
-
-1. **只推本文件夹**——不要连父目录一起推（父目录里可能有你已填好的真实档案和私有定制版，含真实健康数据）
-2. **查 git 历史**：`git log --all --name-only | grep -E "settings|个人档案|训练计划|每日流程"`，确认没有真实文档进过历史；如果有，需要重写历史或换仓库
-3. **邮箱隐私**：不想在提交历史里暴露真实邮箱 → GitHub → Settings → Emails → 勾选 "Keep my email addresses private"，或本仓库 `git config user.email "<id>+<user>@users.noreply.github.com"`
-4. **终端历史**：本地测试脚本时在终端输过命令（含日期等数据）没关系——`.zsh_history`/`.bash_history` 在用户主目录，不属于仓库，不会被推送；但别把这类文件手动拷进仓库
-5. **压缩/网盘分享前**：若你运行过 `setup.sh`，先删除本目录里的 `settings.md`（含你的账号 ID）
-6. **本仓库是"模具"**：下载者运行 `setup.sh` 后会得到本机 `settings.md` 和工作区模板，填入自己的数据——你的成品数据永远不该出现在仓库里
+1. 安装并完成 `setup.sh` 初始化。
+2. 编辑 `settings.md`：确认 Garmin 账号 ID 与静息心率基线。
+3. 编辑工作区 `个人档案.md`：填写伤病、基线、目标。
+4. 编辑工作区 `训练计划.md`：确认周结构与课表。
+5. 重启 DSH。
+6. 每日早晨发送「今天训练计划」，获取当日处方。
+7. 每晚按提醒测量体重与体脂，并在「训练日志」日历中填写当日记录；训练后追加训练记录事件。
+8. 周日按卡片提示进行周复盘；每月第一个周日进行月复盘。
 
 ## License
 
