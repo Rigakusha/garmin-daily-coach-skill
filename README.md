@@ -66,7 +66,7 @@
 ├── setup.sh                 初始化脚本
 ├── settings.example.md
 ├── .gitignore               排除 settings.md
-├── scripts/                 检查数据新鲜度.py / 写今日日程.swift / 添加提醒.sh / 清理过期提醒.swift
+├── scripts/                 检查数据新鲜度.py / 写今日日程.swift / 添加提醒.sh / 清理过期提醒.swift / 写周期记录.swift
 └── templates/               工作区文档模板
 ```
 
@@ -78,6 +78,7 @@
 | 评级阈值 | `SKILL.md` 五信号矩阵 |
 | 日历名称 | `scripts/写今日日程.swift` 顶部常量 |
 | 提醒列表名称 | `scripts/添加提醒.sh`、`scripts/清理过期提醒.swift` 顶部常量 |
+| 周期锚点 | 工作区 `训练计划.md` 的「周期锚点」节 |
 | 目标与基线 | 工作区 `个人档案.md`、`训练计划.md` |
 | 流程逻辑 | `SKILL.md`（修改后需重启 DSH） |
 
