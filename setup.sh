@@ -11,7 +11,7 @@ echo
 read -r -p "工作区目录（默认 ~/Documents/garmin-coach）：" WS
 WS="${WS:-$HOME/Documents/garmin-coach}"
 mkdir -p "$WS"
-for f in 训练计划.md 个人档案.md 每日流程.md; do
+for f in 训练计划.md 个人档案.md 每日流程.md Plan1_阶段计划.md 登神长阶.md; do
   if [ ! -f "$WS/$f" ]; then
     cp "$DIR/templates/$f.template" "$WS/$f"
     echo "已生成 $WS/$f"
