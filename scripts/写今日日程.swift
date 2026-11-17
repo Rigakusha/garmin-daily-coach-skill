@@ -1,10 +1,11 @@
 import EventKit
 import Foundation
 
-// 用法: swift 写今日日程.swift <标题> <开始小时> <开始分钟> <时长分钟> <备注>
+// 用法: swift 写今日日程.swift <标题> <开始小时> <开始分钟> <时长分钟> <备注> [<附加标题> <附加开始小时> <附加开始分钟> <附加时长分钟>]
+// 主事件 + 可选的附加事件（如训练后的「清水洗脸」）一次写入，自动清理当天旧事件。
 let args = CommandLine.arguments
 guard args.count >= 6 else {
-    print("usage: 写今日日程.swift <标题> <开始小时> <开始分钟> <时长分钟> <备注>")
+    print("usage: 写今日日程.swift <标题> <时> <分> <时长min> <备注> [<附加标题> <时> <分> <时长min>]")
     exit(2)
 }
 let title = args[1]
@@ -12,6 +13,12 @@ let hour = Int(args[2]) ?? 19
 let minute = Int(args[3]) ?? 30
 let durationMin = Int(args[4]) ?? 40
 let notes = args[5]
+
+let hasExtra = args.count >= 10
+let extraTitle = hasExtra ? args[6] : ""
+let extraHour = hasExtra ? (Int(args[7]) ?? 20) : 0
+let extraMinute = hasExtra ? (Int(args[8]) ?? 10) : 0
+let extraDuration = hasExtra ? (Int(args[9]) ?? 5) : 0
 
 let store = EKEventStore()
 let sem = DispatchSemaphore(value: 0)
@@ -37,18 +44,26 @@ for ev in store.events(matching: pred) {
     try? store.remove(ev, span: .thisEvent, commit: true)
 }
 
-var comps = cal0.dateComponents([.year, .month, .day], from: Date())
-comps.hour = hour
-comps.minute = minute
-comps.second = 0
-let start = cal0.date(from: comps)!
-let end = start.addingTimeInterval(TimeInterval(durationMin * 60))
+func makeEvent(title: String, hour: Int, minute: Int, durationMin: Int, notes: String) throws {
+    var comps = cal0.dateComponents([.year, .month, .day], from: Date())
+    comps.hour = hour
+    comps.minute = minute
+    comps.second = 0
+    let start = cal0.date(from: comps)!
+    let end = start.addingTimeInterval(TimeInterval(durationMin * 60))
+    let ev = EKEvent(eventStore: store)
+    ev.calendar = schedCal
+    ev.title = title
+    ev.startDate = start
+    ev.endDate = end
+    ev.notes = notes
+    try store.save(ev, span: .thisEvent, commit: true)
+    print("OK \(title) @ \(start) - \(end)")
+}
 
-let ev = EKEvent(eventStore: store)
-ev.calendar = schedCal
-ev.title = title
-ev.startDate = start
-ev.endDate = end
-ev.notes = notes
-do { try store.save(ev, span: .thisEvent, commit: true) } catch { print("SAVE_FAIL \(error)"); exit(3) }
-print("OK \(title) @ \(start) - \(end)")
+do {
+    try makeEvent(title: title, hour: hour, minute: minute, durationMin: durationMin, notes: notes)
+    if hasExtra {
+        try makeEvent(title: extraTitle, hour: extraHour, minute: extraMinute, durationMin: extraDuration, notes: "")
+    }
+} catch { print("SAVE_FAIL \(error)"); exit(3) }
